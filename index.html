@@ -10,5 +10,135 @@
 <script>
 	angular.module('app', [])
 		.controller('TaxController', ['$scope', '$filter', function($scope, $filter) {
+
+		$scope.data_ptkp = [
+			{ name: 'TK, Tidak Kawin', value: 24300000 },
+			{ name: 'TK1, Tidak Kawin 1 tanggungan', value: 26325000 },
+			{ name: 'TK2, Tidak Kawin 2 tanggungan', value: 28350000 },
+			{ name: 'TK3, Tidak Kawin 3 tanggungan', value: 30375000 },
+			{ name: 'K, Kawin tanpa tanggungan', value: 26325000 },
+			{ name: 'K1, Kawin 1 tanggungan', value: 28350000 },
+			{ name: 'K2, Kawin 2 tanggungan', value: 30375000 },
+			{ name: 'K3, Kawin 3 tanggungan', value: 32400000 }
+        ];
+
+        $scope.data_npwp = {
+          true: [
+            { range: 50000000, value: 0.05 }, 
+            { range: 200000000, value: 0.15 },
+            { range: 250000000, value: 0.25 },
+            { range: 100000000000, value: 0.30 }
+          ],
+          false: [
+            { range: 50000000, value: 0.06 }, 
+            { range: 200000000, value: 0.18 },
+            { range: 250000000, value: 0.30 },
+            { range: 100000000000, value: 0.36 }
+          ]
+        };
+        
+        $scope.npwp = false;
+        $scope.ptkp = $scope.data_ptkp[0];
+
+        $scope.gaji = 0;
+        $scope.thr = 0;
+        
+        $scope.pph = [0, 0, 0, 0];
+
+        $scope.gaji_per_tahun = function() {
+          return ($scope.gaji)*12;
+        }
+
+        $scope.bruto = function() {
+          return ($scope.gaji_per_tahun() + $scope.thr);
+        }
+
+        $scope.biaya_jabatan = function() {
+          var percent = $scope.gaji_per_tahun() * 0.05;
+          percent = ((percent > 6000000) ? 6000000 : percent);
+
+          return percent;
+        }
+
+        $scope.netto = function() {
+          return ($scope.bruto() - $scope.biaya_jabatan());
+        }
+
+        $scope.pkp = function() {
+          var pkp = ($scope.netto() - $scope.ptkp.value);
+          if (pkp < 0) pkp = 0;
+          return pkp;
+        }
+
+        $scope.count_pph = function(i, amount, list) {
+          if (i >= $scope.pph.length) return;
+
+          var again = true;
+          var temp = 0;
+          
+          if (amount < list[i].range) {
+            temp = amount;
+            again = false
+          } else {
+            temp = list[i].range;
+          }
+
+          $scope.pph[i] = temp * list[i].value;
+
+          if (again) {
+            $scope.count_pph(i + 1, amount - list[i].range, list);
+          } else {
+            $scope.count_pph(i + 1, 0, list);
+          }
+        }
+
+        $scope.total_pph = function() {
+          return _.reduce($scope.pph, function(sum, n) { return sum + n; });
+        }
+
+        $scope.total_pph_per_bulan = function() {
+          return $scope.total_pph() / 12;
+        }
+
+        $scope.total_gaji = function() {
+          return $scope.netto() - $scope.total_pph();
+        }
+
+        $scope.total_gaji_per_bulan = function() {
+          return $scope.total_gaji() / 12;
+        }
+
+        $scope.ratio = function() {
+          var percent = ($scope.total_pph_per_bulan() / $scope.total_gaji_per_bulan()) * 100;
+
+          if ($scope.total_gaji_per_bulan() <= 0) {
+            percent = 0;
+          } else {
+            percent = $filter('number')(percent, 2);
+          }
+
+          return percent + ' %';
+        }
+
+        $scope.$watch('gaji', function() {
+          $scope.count_pph(0, $scope.pkp(), $scope.data_npwp[$scope.npwp]);
+        });
+
+        $scope.$watch('thr', function() {
+          $scope.count_pph(0, $scope.pkp(), $scope.data_npwp[$scope.npwp]);
+        });
+
+        $scope.$watch('npwp', function() {
+          $scope.count_pph(0, $scope.pkp(), $scope.data_npwp[$scope.npwp]);
+        });
+
+        $scope.$watch('ptkp', function() {
+          $scope.count_pph(0, $scope.pkp(), $scope.data_npwp[$scope.npwp]);
+        });
+      }]);
+    $(function () {
+      $('i').tooltip();
+    })
+  </script>
 </script>
 </html>
